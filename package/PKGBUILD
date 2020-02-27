@@ -1,11 +1,7 @@
 # Maintainer: Robin Lange <robin dot langenc at gmail dot com>
 # Contributor: Robin Lange <robin dot langenc at gmail dot com>
 pkgname=optimus-manager-git
-<<<<<<< HEAD
 pkgver=1.2.2
-=======
-pkgver=1.2.2.r30.g22b74ed
->>>>>>> d0520b8... fix potential problem on systemd where an error could appear from this function by skipping it.
 pkgrel=1
 pkgdesc="Management utility to handle GPU switching for Optimus laptops (Git version)"
 arch=('any')
