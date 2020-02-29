@@ -133,7 +133,10 @@ def is_elogind_active():
 
 
 def is_daemon_active():
-    return _is_service_active("optimus-manager")
+    if _detect_init_system(init="runit"):
+        return True
+    else:
+        return _is_service_active("optimus-manager")
 
 
 def is_bumblebeed_service_active():
