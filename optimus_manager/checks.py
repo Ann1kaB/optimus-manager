@@ -133,9 +133,6 @@ def is_elogind_active():
 
 
 def is_daemon_active():
-    if _detect_init_system(init="runit"):
-        return True
-    else:
         return _is_service_active("optimus-manager")
 
 
