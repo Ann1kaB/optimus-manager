@@ -154,10 +154,6 @@ def is_login_manager_active():
     return _is_service_active("display-manager")
 
 
-def is_elogind_active():
-    return _is_service_active("elogind")
-
-
 def is_daemon_active():
     return _is_service_active("optimus-manager")
 
@@ -181,16 +177,7 @@ def _is_gl_provider_nvidia():
     return False
 
 
-def _is_elogind_present():
-    return os.path.isfile("/usr/lib/libelogind.so.0")
-
-
 def _is_service_active(service_name):
-
-    if _is_elogind_present():
-        return _is_service_active_bash(service_name)
-    else:
-        pass
 
     try:
         system_bus = dbus.SystemBus()
@@ -203,6 +190,11 @@ def _is_service_active(service_name):
 
 
 def _is_service_active_dbus(system_bus, service_name):
+    
+    if not _detect_init_system(init="systemd"):
+        return _is_service_active_bash(service_name)
+    else:
+        pass
 
     systemd = system_bus.get_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
 

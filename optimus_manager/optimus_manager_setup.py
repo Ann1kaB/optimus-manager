@@ -10,7 +10,7 @@ from optimus_manager.kernel_parameters import get_kernel_parameters
 from optimus_manager.kernel import setup_kernel_state, KernelSetupError
 from optimus_manager.xorg import configure_xorg, cleanup_xorg_conf, is_xorg_running, setup_PRIME, set_DPI, XorgSetupError
 import optimus_manager.processes as processes
-from optimus_manager.checks import is_daemon_active, is_elogind_active, _detect_init_system, _is_elogind_present, is_ac_power_connected
+from optimus_manager.checks import is_daemon_active, _detect_init_system, is_ac_power_connected
 from optimus_manager.logging_utils import print_timestamp_separator
 
 
@@ -69,7 +69,6 @@ def main():
         elif _detect_init_system(init="systemd"):
             print("Checking the status of optimus-manager.service")
         _abort_if_service_inactive()
-        _abort_if_elogind_inactive()
 
         print("Loading config")
         config = _get_config()
@@ -85,7 +84,6 @@ def main():
         elif _detect_init_system(init="systemd"):
             print("Checking status of optimus-manager.service")
         _abort_if_service_inactive()
-        _abort_if_elogind_inactive()
         print("Cleaning up leftover Xorg conf")
         cleanup_xorg_conf()
 
@@ -95,13 +93,6 @@ def main():
         requested_mode = _get_requested_mode()
         print("Requested mode :", requested_mode)
         _setup_gpu(config, requested_mode)
-
-
-def _abort_if_elogind_inactive():
-    if not _detect_init_system(init="systemd"):
-        if not is_elogind_active():
-            print("ERROR : Elogind is either not installed or not running. Aborting.")
-            sys.exit(0)
 
 
 def _abort_if_service_inactive():
