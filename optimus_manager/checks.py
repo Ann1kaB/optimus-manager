@@ -47,6 +47,10 @@ def is_module_loaded(module_name):
         return True
 
 
+def detect_os():
+    return os.path.isdir("/run/runit/service")
+
+
 def _detect_init_system(init):
     try:
         exec_bash("systemctl")
@@ -59,15 +63,14 @@ def _detect_init_system(init):
     except BashError:
         pass
     try:
-        exec_bash("pstree | grep runit")
-        return init == "runit"
+        exec_bash("command -v sv")
+        if detect_os():
+            return init == "runit-artix"
+        elif not detect_os():
+            return init == "runit-void"
     except BashError:
         pass
     return False
-
-
-def detect_os():
-    return os.path.isdir("/run/runit/service")
 
 
 def get_current_display_manager():
@@ -216,7 +219,35 @@ def _is_service_active_bash(service_name):
 
     if _detect_init_system(init="runit"):
         try:
+<<<<<<< HEAD
             exec_bash("sv s %s" % service_name)
+=======
+            exec_bash("sudo cat /var/service/%s/supervise/stat | grep run" % service_name)
+        except BashError:
+            return False
+        else:
+            return True
+
+    if _detect_init_system(init="runit-void"):
+        try:
+            exec_bash("sudo cat /var/service/%s/supervise/stat | grep run" % service_name)
+        except BashError:
+            return False
+        else:
+            return True
+            
+    if _detect_init_system(init="runit-artix"):
+        try:
+            exec_bash("sudo cat /run/runit/service/%s/supervise/stat | grep run" % service_name)
+        except BashError:
+            return False
+        else:
+            return True
+    
+    if _detect_init_system(init="s6"):
+        try:
+            exec_bash("pstree | grep %s" % service_name)
+>>>>>>> 3adea19... seperate runit init detection for void and artix
         except BashError:
             return False
         else:
