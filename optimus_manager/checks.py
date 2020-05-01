@@ -46,6 +46,8 @@ def is_module_loaded(module_name):
     else:
         return True
 
+def detect_os():
+    return os.path.isdir("/run/runit/service")
 
 def detect_os():
     return os.path.isdir("/run/runit/service")
