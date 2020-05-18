@@ -138,7 +138,13 @@ def is_login_manager_active():
 
 
 def is_elogind_active():
-    return _is_service_active("elogind")
+
+    try:
+        exec_bash("pgrep -a elogind")
+    except BashError:
+        return False
+    else:
+        return True
 
 
 def is_daemon_active():
