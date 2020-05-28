@@ -68,9 +68,6 @@ def is_module_loaded(module_name):
 def detect_os():
     return os.path.isdir("/run/runit/service")
 
-def detect_os():
-    return os.path.isdir("/run/runit/service")
-
 
 def _detect_init_system(init):
     try:
@@ -202,7 +199,7 @@ def _is_gl_provider_nvidia():
 
 
 def _is_elogind_present():
-    return os.path.isfile("/usr/lib/libelogind.so")
+    return os.path.isfile("/usr/lib/libelogind.so.0")
 
 
 def _is_service_active(service_name):

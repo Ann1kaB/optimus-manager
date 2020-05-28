@@ -14,7 +14,7 @@ from .. import sessions
 from .args import parse_args
 from .utils import ask_confirmation
 from .error_reporting import report_errors
-from .client_checks import run_switch_checks
+from .client_checks import run_switch_checks, _check_daemon_active
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
 
         if fatal:
             print("Cannot execute command because of previous errors.")
-            sys.exit(1)
+            return _check_daemon_active()
 
         if args.print_mode:
             _print_current_mode(state)
@@ -175,9 +175,20 @@ def _send_command(command):
 
     except (ConnectionRefusedError, OSError):
         print("Cannot connect to the UNIX socket at %s. Is optimus-manager-daemon running ?\n"
-              "\nYou can enable and start it by running those commands as root :\n"
-              "\nsystemctl enable optimus-manager.service\n"
-              "systemctl start optimus-manager.service\n" % envs.SOCKET_PATH)
+            "\nYou can enable and start it by running those commands as root :\n")
+        if _detect_init_system(init="systemd"):
+            print("\nsystemctl enable optimus-manager.service\n"
+                "systemctl start optimus-manager.service\n" % envs.SOCKET_PATH)
+        elif _detect_init_system(init="openrc"):
+            print("\nrc-update add optimus-manager default\n"
+                "rc-service optimus-manager start\n" % envs.SOCKET_PATH)
+        elif _detect_init_system(init="runit"):
+            if checks.detect_os():
+                print("ln -s /etc/runit/sv/optimus-manager /var/run/runit/service\n"
+                    "sv u optimus-manager\n" % envs.SOCKET_PATH)
+            elif not checks.detect_os():
+                print("ln -s /etc/sv/optimus-manager /var/service\n"
+                    "sv u optimus-manager\n" % envs.SOCKET_PATH)
         sys.exit(1)
 
 def _set_temp_config_and_exit(rel_path):
