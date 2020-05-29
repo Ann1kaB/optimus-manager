@@ -10,17 +10,18 @@ def kill_gdm_server():
 
     logger.info("Checking for GDM display servers")
 
-    try:
-        xorg_PIDs_list = processes.get_PIDs_from_process_names(["Xorg", "X"])
+    if using_patched_GDM():
+        try:
+            xorg_PIDs_list = processes.get_PIDs_from_process_names(["Xorg", "X"])
 
-        for PID_value in xorg_PIDs_list:
-            user = processes.get_PID_user(PID_value)
-            if user == "gdm" or user == "root":
-                logger.info("Found a Xorg GDM process (PID %d), killing it...", PID_value)
-                processes.kill_PID(PID_value, signal="-KILL")
+            for PID_value in xorg_PIDs_list:
+                user = processes.get_PID_user(PID_value)
+                if user == "gdm" or user == "root":
+                    logger.info("Found a Xorg GDM process (PID %d), killing it...", PID_value)
+                    processes.kill_PID(PID_value, signal="-KILL")
 
-    except processes.ProcessesError as e:
-        raise RuntimeError("Error : cannot check for or kill the GDM display server : %s" % str(e))
+        except processes.ProcessesError as e:
+            raise RuntimeError("Error : cannot check for or kill the GDM display server : %s" % str(e))
 
 def restart_gdm_server():
 
