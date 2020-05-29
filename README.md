@@ -111,14 +111,10 @@ OpenRC/runit:`optimus-manager` (needs a reboot to be applied).
 Usage
 ----------
 
-(Note: hybrid mode is now 2 modes, "hybrid-intel" and "hybrid-amd". "hybrid" mode is deprecated)
-
 Run
 * `optimus-manager --switch nvidia` to switch to the Nvidia GPU
-* `optimus-manager --switch amd` to switch to the AMD GPU and power the Nvidia GPU off
-* `optimus-manager --switch intel` to switch to the Intel GPU and power the Nvidia GPU off
-* `optimus-manager --switch hybrid-amd` to switch to the AMD GPU but leave the Nvidia GPU available on-demand offloading
-* `optimus-manager --switch hybrid-intel` to switch to the Intel GPU but leave the Nvidia GPU available for on-demand offloading, similar to how Optimus works on Windows. See [the Wiki](https://github.com/Askannz/optimus-manager/wiki/Nvidia-GPU-offloading-for-%22hybrid%22-mode) for more details
+* `optimus-manager --switch igpu` to switch to the iGPU and power the Nvidia GPU off
+* `optimus-manager --switch hybrid` to switch to the iGPU but leave the Nvidia GPU available for on-demand offloading, similar to how Optimus works on Windows. See [the Wiki](https://github.com/Askannz/optimus-manager/wiki/Nvidia-GPU-offloading-for-%22hybrid%22-mode) for more details
 
 (Note: `auto` and `ac_auto` are deprecated and removed from the -git version)
 
