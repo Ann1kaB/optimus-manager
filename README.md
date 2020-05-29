@@ -65,9 +65,9 @@ The service scripts are different from the ones that come with the Display Manag
 
 for example: `sudo rm -rf /var/service/sddm && sudo ln -s /etc/sv/optimus-manager-sddm /var/service/`
 
-Void: optimus-manager-lightdm and optimus-manager-sddm. Without a Display Manager, install optimus-manager-xinit.
+Void: optimus-manager-lightdm and optimus-manager-sddm. 
 
-Artix: optimus-manager-runit-lightdm and optimus-manager-sddm. Without a Display Manager, install optimus-manager-runit-xinit.
+Artix: optimus-manager-runit-lightdm and optimus-manager-sddm.
 
 After installation, the optimus-manager daemon should have been started automatically, but you can check its status with:
 
