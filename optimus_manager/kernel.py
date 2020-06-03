@@ -13,8 +13,6 @@ class KernelSetupError(Exception):
 
 def setup_kernel_state(config, prev_state, requested_mode):
 
-    igpu = get_available_igpu()
-
     assert requested_mode in ["igpu", "nvidia", "hybrid"]
     assert prev_state["type"] == "pending_pre_xorg_start"
 
@@ -116,9 +114,7 @@ def _load_nvidia_modules(config, available_modules):
 
 def _load_nouveau(config, available_modules):
 
-    igpu = get_available_igpu()
-
-    modeset_value = 1 if config[igpu]["modeset"] == "yes" else 0
+    modeset_value = 1 if config["igpu"]["modeset"] == "yes" else 0
 
     _load_module(available_modules, "nouveau", options="modeset=%d" % modeset_value)
 

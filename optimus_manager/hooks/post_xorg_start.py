@@ -1,7 +1,7 @@
 import sys
 from ..config import load_config
 from .. import var
-from ..xorg import do_xsetup, set_DPI
+from ..xorg import do_xsetup
 from ..log_utils import set_logger_config, get_logger
 
 
@@ -14,9 +14,8 @@ def main():
 
             requested_mode = prev_state["current_mode"]
 
-            do_xsetup(requested_mode)
             config = load_config()
-            set_DPI(config, requested_mode)
+            do_xsetup(config, requested_mode)
             return
         else:
             return
@@ -33,9 +32,8 @@ def main():
 
         requested_mode = prev_state["requested_mode"]
 
-        do_xsetup(requested_mode)
         config = load_config()
-        set_DPI(config, requested_mode)
+        do_xsetup(config, requested_mode)
         
 
         state = {

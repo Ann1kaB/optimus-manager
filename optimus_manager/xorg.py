@@ -65,10 +65,9 @@ def is_there_a_MHWD_file():
     return os.path.isfile("/etc/X11/xorg.conf.d/90-mhwd.conf")
 
 
-def do_xsetup(requested_mode):
+def do_xsetup(config, requested_mode):
 
     logger = get_logger()
-
 
     if requested_mode == "nvidia":
         logger.info("Running xrandr commands")
@@ -86,14 +85,11 @@ def do_xsetup(requested_mode):
     except BashError as e:
         logger.error("ERROR : cannot run %s : %s", script_path, str(e))
 
+        dpi_str = config["nvidia"]["dpi"]
 
-def set_DPI(config, requested_mode):
+        if dpi_str == "":
+            return
 
-    dpi_str = config["nvidia"]["dpi"]
-
-    if dpi_str == "":
-        return
-    if requested_mode == "nvidia":
         try:
             exec_bash("xrandr --dpi %s" % dpi_str)
         except BashError as e:
