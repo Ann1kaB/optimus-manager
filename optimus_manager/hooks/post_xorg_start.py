@@ -10,14 +10,6 @@ def main():
     prev_state = var.load_state()
 
     if prev_state is None or prev_state["type"] != "pending_post_xorg_start":
-        if prev_state["current_mode"] == "nvidia":
-
-            requested_mode = prev_state["current_mode"]
-
-            config = load_config()
-            do_xsetup(config, requested_mode)
-            return
-        else:
             return
 
     switch_id = prev_state["switch_id"]
