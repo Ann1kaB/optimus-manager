@@ -236,17 +236,18 @@ def _make_intel_device_section(config, bus_ids, xorg_extra, igpu):
 
     logger = get_logger()
 
+    dri = int(config["igpu"]["dri"])
+
+    text = "Section \"Device\"\n" \
+           "\tIdentifier \"intel\"\n"
+
     if config["igpu"]["driver"] == "xorg" and not _is_intel_module_available():
         logger.warning("The Xorg intel module is not available. Defaulting to modesetting.")
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "intel"
+        text += "\tDriver \"%s\"\n" % driver
 
-    dri = int(config["igpu"]["dri"])
-
-    text = "Section \"Device\"\n" \
-           "\tIdentifier \"intel\"\n"
-    text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["intel"]
     if config["igpu"]["accel"] != "":
         text += "\tOption \"AccelMethod\" \"%s\"\n" % config["igpu"]["accel"]
@@ -263,17 +264,20 @@ def _make_intel_device_section(config, bus_ids, xorg_extra, igpu):
 
 def _make_amd_device_section(config, bus_ids, xorg_extra, igpu):
 
-    if config["igpu"]["driver"] == "xorg" and not _is_amd_module_available():
-        print("WARNING : The Xorg amdgpu module is not available. Defaulting to modesetting.")
-        driver = "modesetting"
-    elif config["igpu"]["driver"] == "xorg":
-        driver = "amdgpu"
+    logger = get_logger()
 
     dri = int(config["igpu"]["dri"])
 
     text = "Section \"Device\"\n" \
            "\tIdentifier \"amd\"\n"
-    text += "\tDriver \"%s\"\n" % driver
+
+    if config["igpu"]["driver"] == "xorg" and not _is_amd_module_available():
+        logger.warning("WARNING : The Xorg amdgpu module is not available. Defaulting to modesetting.")
+        driver = "modesetting"
+    elif config["igpu"]["driver"] == "xorg":
+        driver = "amdgpu"
+        text += "\tDriver \"%s\"\n" % driver
+
     text += "\tBusID \"%s\"\n" % bus_ids["amd"]
     if config["igpu"]["tearfree"] != "":
         tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
