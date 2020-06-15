@@ -1,4 +1,5 @@
 import os
+import psutil
 from pathlib import Path
 import re
 import dbus
@@ -71,31 +72,22 @@ def detect_os():
     return os.path.isdir("/run/runit/service")
 
 def _detect_init_system(init):
-    try:
-        exec_bash("systemctl")
-        return init == "systemd"
-    except BashError:
-        pass
-    try:
-        exec_bash("rc-status")
-        return init == "openrc"
-    except BashError:
-        pass
-    try:
-        exec_bash("pgrep -a runit")
+    process = psutil.Process(1)
+    process_name = process.name(process)
+    
+    if process_name(process) = "runit":
         if detect_os():
-            return init == "runit-artix"
-        elif not detect_os():
-            return init == "runit-void"
-    except BashError:
-        pass
-    try:
-        exec_bash("command -v s6-rc")
-        return init == "s6"
-    except BashError:
-        pass
-    return False
-
+            init == "runit-artix"
+        else:
+            init == "runit-void"
+    elif process_name(process) = "systemd":
+        init == "systemd"
+    elif process_name(process) = "openrc-init":
+        init == "openrc"
+    elif process_name(process) = "s6-init":
+        init == "s6"
+    else:
+        return False
 
 def get_current_display_manager():
 
