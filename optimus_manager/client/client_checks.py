@@ -6,16 +6,14 @@ from .utils import ask_confirmation
 from ..pci import get_available_igpu
 
 
-def run_switch_checks(config, requested_mode):
+def run_switch_checks(config, requested_mode, igpu, init):
 
-    igpu = get_available_igpu()
-
-    _check_elogind_active()
-    _check_daemon_active()
+    _check_elogind_active(init)
+    _check_daemon_active(init)
     _check_power_switching(config)
     _check_bbswitch_module(config)
     _check_nvidia_module(requested_mode)
-    _check_patched_GDM()
+    _check_patched_GDM(init)
     _check_wayland()
     _check_bumblebeed()
     _check_xorg_conf()
@@ -25,28 +23,28 @@ def run_switch_checks(config, requested_mode):
     _check_number_of_sessions()
 
 
-def _check_elogind_active():
+def _check_elogind_active(init):
 
-    if not checks.is_elogind_active() and not checks._detect_init_system(init="systemd"):
+    if not checks.is_elogind_active() and not init == "systemd":
         print("The Elogind service was not detected but is required to use optimus-manager, please install, enable and start it.")
         sys.exit(1)
 
 
-def _check_daemon_active():
+def _check_daemon_active(init):
 
-    if not checks.is_daemon_active():
+    if not checks.is_daemon_active(init):
         print("The optimus-manager service is not running. Please enable and start it with :\n")
-        if checks._detect_init_system(init="openrc"):
+        if init == "openrc":
             print("sudo rc-service enable optimus-manager\n"
                   "sudo rc-service start optimus-manager\n")
-        elif checks._detect_init_system(init="runit-void"):
+        elif init == "runit-void":
             print("sudo ln -s /etc/sv/optimus-manager /var/service\n")
-        elif checks._detect_init_system(init="runit-artix"):    
+        elif init == "runit-artix":
             print("sudo ln -s /etc/runit/sv/optimus-manager /run/runit/service\n")
-        elif checks._detect_init_system(init="systemd"):
+        elif init == "systemd":
             print("sudo systemctl enable optimus-manager\n"
                   "sudo systemctl start optimus-manager\n")
-        elif checks._detect_init_system(init="s6"):
+        elif init == "s6":
             print("sudo s6-rc-bundle-update add default optimus-manager\n"
                   "sudo s6-rc -u change optimus-mnanager\n")
         else:
@@ -83,10 +81,10 @@ def _check_nvidia_module(requested_mode):
         if not confirmation:
             sys.exit(0)
 
-def _check_patched_GDM():
+def _check_patched_GDM(init):
 
     try:
-        dm_name = checks.get_current_display_manager()
+        dm_name = checks.get_current_display_manager(init)
     except checks.CheckError as e:
         print("ERROR : cannot get current display manager name : %s" % str(e))
         return

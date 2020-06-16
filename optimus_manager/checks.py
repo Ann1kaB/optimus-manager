@@ -71,28 +71,29 @@ def is_module_loaded(module_name):
 def detect_os():
     return os.path.isdir("/run/runit/service")
 
-def _detect_init_system(init):
+def _detect_init_system():
+
     process = psutil.Process(1)
-    process_name = process.name(process)
+    process_name = process.name()
     
-    if process_name(process) = "runit":
+    if process_name == "runit":
         if detect_os():
-            init == "runit-artix"
+            init = "runit-artix"
         else:
-            init == "runit-void"
-    elif process_name(process) = "systemd":
-        init == "systemd"
-    elif process_name(process) = "openrc-init":
-        init == "openrc"
-    elif process_name(process) = "s6-init":
-        init == "s6"
-    else:
-        return False
+            init = "runit-void"
+    elif process_name == "systemd":
+        init = "systemd"
+    elif process_name == "openrc-init":
+        init ="openrc"
+    elif process_name == "s6-init":
+        init = "s6"
 
-def get_current_display_manager():
+    return init
 
-    if not _detect_init_system(init="systemd"):
-        return _get_openrc_display_manager()
+def get_current_display_manager(init):
+
+    if not init == "systemd":
+        return _get_openrc_display_manager(init)
     else:
         pass
 
@@ -106,9 +107,9 @@ def get_current_display_manager():
     return dm_name
 
 
-def _get_openrc_display_manager():
+def _get_openrc_display_manager(init):
 
-    if not _detect_init_system(init="openrc"):
+    if not init == "openrc":
         return using_patched_GDM()
     else:
         pass
@@ -153,27 +154,21 @@ def is_login_manager_active():
     return _is_service_active("display-manager")
 
 def is_elogind_active():
+    return _is_service_active("elogind")
     
-    try:
-        exec_bash("pgrep -a elogind")
-    except BashError:
-        return False
-    else:
-        return True
-
 def is_lxdm_active():
     return _is_service_active("lxdm")
 
-def is_daemon_active():
+def is_daemon_active(init):
 
-    if _detect_init_system(init="runit-artix"):
+    if init == "runit-artix":
         try:
             exec_bash("pgrep -a python3 | grep -o optimus_manager")
         except BashError:
             return False
         else:
             return True
-    elif _detect_init_system(init="runit-void"):
+    elif init == "runit-void":
         try:
             exec_bash("pgrep -a python3 | grep  -o optimus_manager")
         except BashError:
@@ -250,7 +245,9 @@ def _is_service_active_dbus(system_bus, service_name):
 
 def _is_service_active_bash(service_name):
 
-    if _detect_init_system(init="systemd"):
+    init = _detect_init_system()
+
+    if init == "systemd":
         try:
             exec_bash("systemctl is-active %s" % service_name)
         except BashError:
@@ -258,7 +255,7 @@ def _is_service_active_bash(service_name):
         else:
             return True
 
-    if _detect_init_system(init="openrc"):
+    elif init == "openrc":
         try:
             exec_bash("rc-service %s status" % service_name)
         except BashError:
@@ -266,30 +263,10 @@ def _is_service_active_bash(service_name):
         else:
             return True
 
-    if _detect_init_system(init="runit-void"):
+    elif init in ["runit-void", "runit-artix", "s6"]:
         try:
             exec_bash("pgrep -a %s" % service_name)
         except BashError:
             return False
         else:
             return True
-            
-    if _detect_init_system(init="runit-artix"):
-        try:
-            exec_bash("pgrep -a %s" % service_name)
-        except BashError:
-            return False
-        else:
-            return True
-    
-    if _detect_init_system(init="s6"):
-        try:
-            exec_bash("pstree | grep %s" % service_name)
-        except BashError:
-            return False
-        else:
-            return True
-
-
-
-

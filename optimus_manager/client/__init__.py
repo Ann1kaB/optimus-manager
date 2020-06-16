@@ -15,6 +15,8 @@ from .args import parse_args
 from .utils import ask_confirmation
 from .error_reporting import report_errors
 from .client_checks import run_switch_checks, _check_daemon_active
+from ..pci import get_available_igpu
+from ..checks import _detect_init_system
 
 
 def main():
@@ -22,6 +24,8 @@ def main():
     args = parse_args()
     state = load_state()
     fatal = report_errors(state)
+    igpu = get_available_igpu()
+    init = _detect_init_system()
 
     config = _get_config()
     print("")
@@ -43,7 +47,7 @@ def main():
 
         if fatal:
             print("Cannot execute command because of previous errors.\n")
-            return _check_daemon_active()
+            return _check_daemon_active(init)
 
         if args.print_mode:
             _print_current_mode(state)
@@ -52,7 +56,7 @@ def main():
         elif args.status:
             _print_status(config, state)
         elif args.switch:
-            _gpu_switch(config, args.switch, args.no_confirm)
+            _gpu_switch(config, args.switch, args.no_confirm, igpu, init)
         else:
             print("Invalid arguments.")
             sys.exit(1)
@@ -60,13 +64,13 @@ def main():
     sys.exit(0)
 
 
-def _gpu_switch(config, switch_mode, no_confirm):
+def _gpu_switch(config, switch_mode, no_confirm, igpu, init):
 
     if switch_mode not in ["igpu", "nvidia", "hybrid"]:
         print("Invalid mode : %s" % switch_mode)
         sys.exit(1)
 
-    run_switch_checks(config, switch_mode)
+    run_switch_checks(config, switch_mode, igpu, init)
 
     if config["optimus"]["auto_logout"] == "yes":
 

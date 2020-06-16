@@ -26,8 +26,9 @@ def kill_gdm_server():
 def restart_gdm_server():
 
     logger = get_logger()
+    init = _detect_init_system()
 
-    if using_patched_GDM() and _detect_init_system("runit-void") or _detect_init_system(init="runit-artix"):
+    if using_patched_GDM() and init == "runit-void" or init == "runit-artix":
         try:
             logger.info("Restarting GDM server")
             exec_bash("sv restart gdm")
