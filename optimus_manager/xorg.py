@@ -18,7 +18,7 @@ def configure_xorg(config, requested_gpu_mode):
     igpu = get_available_igpu()
 
     if requested_gpu_mode == "nvidia":
-        xorg_conf_text = _generate_nvidia(config, bus_ids, xorg_extra)
+        xorg_conf_text = _generate_nvidia(config, bus_ids, xorg_extra, igpu)
     elif requested_gpu_mode == "igpu":
         xorg_conf_text = _generate_igpu(config, bus_ids, xorg_extra, igpu)
     elif requested_gpu_mode == "hybrid":
@@ -65,7 +65,7 @@ def is_there_a_MHWD_file():
     return os.path.isfile("/etc/X11/xorg.conf.d/90-mhwd.conf")
 
 
-def do_xsetup(config, requested_mode):
+def do_xsetup(config, requested_mode, igpu):
 
     logger = get_logger()
 
@@ -77,8 +77,10 @@ def do_xsetup(config, requested_mode):
             exec_bash("xrandr --auto")
         except BashError as e:
             logger.error("Cannot setup PRIME : %s", str(e))
-
-    script_path = envs.XSETUP_SCRIPTS_PATHS[requested_mode]
+    if requested_mode == "igpu":
+        script_path = envs.XSETUP_SCRIPTS_PATHS[igpu]
+    else:
+        script_path = envs.XSETUP_SCRIPTS_PATHS[requested_mode]
     logger.info("Running %s", script_path)
     try:
         exec_bash(script_path)
@@ -96,7 +98,7 @@ def do_xsetup(config, requested_mode):
             raise XorgSetupError("Cannot set DPI : %s" % str(e))
 
 
-def _generate_nvidia(config, bus_ids, xorg_extra):
+def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
 
     text = "Section \"Files\"\n" \
            "\tModulePath \"/usr/lib/nvidia\"\n" \
@@ -110,9 +112,12 @@ def _generate_nvidia(config, bus_ids, xorg_extra):
 
     text += "Section \"ServerLayout\"\n" \
             "\tIdentifier \"layout\"\n" \
-            "\tScreen 0 \"nvidia\"\n" \
-            "\tInactive \"igpu\"\n" \
-            "EndSection\n\n"
+            "\tScreen 0 \"nvidia\"\n"
+    if igpu == "intel":
+        text += "\tInactive \"intel\"\n"
+    elif igpu == "amd":
+        text += "\tInactive \"amdgpu\"\n"
+    text += "EndSection\n\n"
 
     text += _make_nvidia_device_section(config, bus_ids, xorg_extra)
 
@@ -126,17 +131,25 @@ def _generate_nvidia(config, bus_ids, xorg_extra):
 
     text += "EndSection\n\n"
 
-    text += "Section \"Device\"\n" \
-            "\tIdentifier \"igpu\"\n" \
-            "\tDriver \"modesetting\"\n"
+    text += "Section \"Device\"\n"
+    if igpu == "intel":
+        text += "\tIdentifier \"intel\"\n" \
+                "\tDriver \"modesetting\"\n"
+    elif igpu == "amd":
+        text += "\tIdentifier \"amdgpu\"\n" \
+                "\tDriver \"modesetting\"\n"
     ## TODO: check if this is mandatorily required (and if so, generalize it for Intel/AMD) :
     #text += "\tBusID \"%s\"\n" % bus_ids["intel"] \  # (between "Driver" and "EndSection")
     text += "EndSection\n\n"
 
-    text += "Section \"Screen\"\n" \
-            "\tIdentifier \"igpu\"\n" \
-            "\tDevice \"igpu\"\n" \
-            "EndSection\n\n"
+    text += "Section \"Screen\"\n"
+    if igpu == "intel":
+        text += "\tIdentifier \"intel\"\n" \
+                "\tDevice \"intel\"\n"
+    elif igpu == "amd":
+        text += "\tIdentifier \"amd\"\n" \
+                "\tDevice \"amdgpu\"\n"
+    text += "EndSection\n\n"
 
     text += _make_server_flags_section(config)
 
@@ -145,11 +158,11 @@ def _generate_nvidia(config, bus_ids, xorg_extra):
 
 def _generate_igpu(config, bus_ids, xorg_extra, igpu):
     if igpu == "intel":
-        text = _make_intel_device_section(config, bus_ids, xorg_extra, igpu)
+        text = _make_intel_device_section(config, bus_ids, xorg_extra)
         return text
 
     elif igpu == "amd":
-        text = _make_amd_device_section(config, bus_ids, xorg_extra, igpu)
+        text = _make_amd_device_section(config, bus_ids, xorg_extra)
         return text
 
 
@@ -159,10 +172,14 @@ def _generate_hybrid(config, bus_ids, xorg_extra, igpu):
         text = "Section \"ServerLayout\"\n" \
                "\tIdentifier \"layout\"\n" \
                "\tScreen 0 \"intel\"\n" \
-               "\tOption \"AllowNVIDIAGPUScreens\"\n" \
-               "EndSection\n\n"
+               "\tInactive \"nvidia\"\n"
+        if config["igpu"]["reverseprime"] != "":
+            reverseprime_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["reverseprime"]]
+            text += "\tOption \"AllowPRIMEDisplayOffloadSink\" \"%s\"\n" % reverseprime_enabled_str
+        text += "\tOption \"AllowNVIDIAGPUScreens\"\n" \
+                "EndSection\n\n"
 
-        text += _make_intel_device_section(config, bus_ids, xorg_extra, igpu)
+        text += _make_intel_device_section(config, bus_ids, xorg_extra)
 
         text += "Section \"Screen\"\n" \
                 "\tIdentifier \"intel\"\n" \
@@ -188,10 +205,14 @@ def _generate_hybrid(config, bus_ids, xorg_extra, igpu):
         text = "Section \"ServerLayout\"\n" \
                "\tIdentifier \"layout\"\n" \
                "\tScreen 0 \"amd\"\n" \
-                "\tOption \"AllowNVIDIAGPUScreens\"\n" \
+               "\tInactive \"nvidia\"\n"
+        if config["igpu"]["reverseprime"] != "":
+            reverseprime_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["reverseprime"]]
+            text += "\tOption \"AllowPRIMEDisplayOffloadSink\" \"%s\"\n" % reverseprime_enabled_str
+        text += "\tOption \"AllowNVIDIAGPUScreens\"\n" \
                 "EndSection\n\n"
 
-        text += _make_amd_device_section(config, bus_ids, xorg_extra, igpu)
+        text += _make_amd_device_section(config, bus_ids, xorg_extra)
 
         text += "Section \"Screen\"\n" \
                 "\tIdentifier \"amd\"\n" \
@@ -232,22 +253,22 @@ def _make_nvidia_device_section(config, bus_ids, xorg_extra):
 
     return text
 
-def _make_intel_device_section(config, bus_ids, xorg_extra, igpu):
+def _make_intel_device_section(config, bus_ids, xorg_extra):
 
     logger = get_logger()
 
     dri = int(config["igpu"]["dri"])
 
-    text = "Section \"Device\"\n" \
-           "\tIdentifier \"intel\"\n"
-
+    text = "Section \"Device\"\n"
+    text += "\tIdentifier \"intel\"\n"
     if config["igpu"]["driver"] == "xorg" and not _is_intel_module_available():
         logger.warning("The Xorg intel module is not available. Defaulting to modesetting.")
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "intel"
+    else:
+        driver = "modesetting"
         text += "\tDriver \"%s\"\n" % driver
-
     text += "\tBusID \"%s\"\n" % bus_ids["intel"]
     if config["igpu"]["accel"] != "":
         text += "\tOption \"AccelMethod\" \"%s\"\n" % config["igpu"]["accel"]
@@ -256,35 +277,35 @@ def _make_intel_device_section(config, bus_ids, xorg_extra, igpu):
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
     if "intel" in xorg_extra.keys():
-        for line in xorg_extra["igpu"]:
+        for line in xorg_extra["intel"]:
             text += ("\t" + line + "\n")
     text += "EndSection\n\n"
 
     return text
 
-def _make_amd_device_section(config, bus_ids, xorg_extra, igpu):
+def _make_amd_device_section(config, bus_ids, xorg_extra):
 
     logger = get_logger()
 
     dri = int(config["igpu"]["dri"])
 
-    text = "Section \"Device\"\n" \
-           "\tIdentifier \"amd\"\n"
-
+    text = "Section \"Device\"\n"
+    text += "\tIdentifier \"amd\"\n"
     if config["igpu"]["driver"] == "xorg" and not _is_amd_module_available():
         logger.warning("WARNING : The Xorg amdgpu module is not available. Defaulting to modesetting.")
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "amdgpu"
+    else:
+        driver = "modesetting"
         text += "\tDriver \"%s\"\n" % driver
-
     text += "\tBusID \"%s\"\n" % bus_ids["amd"]
     if config["igpu"]["tearfree"] != "":
         tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
     if "amd" in xorg_extra.keys():
-        for line in xorg_extra["igpu"]:
+        for line in xorg_extra["amd"]:
             text += ("\t" + line + "\n")
     text += "EndSection\n\n"
 
