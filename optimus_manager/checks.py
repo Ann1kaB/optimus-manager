@@ -85,8 +85,6 @@ def _detect_init_system():
         init = "systemd"
     elif process_name == "openrc-init":
         init ="openrc"
-    elif process_name == "s6-init":
-        init = "s6"
 
     return init
 
@@ -263,7 +261,7 @@ def _is_service_active_bash(service_name):
         else:
             return True
 
-    elif init in ["runit-void", "runit-artix", "s6"]:
+    elif init in ["runit-void", "runit-artix"]:
         try:
             exec_bash("pgrep -a %s" % service_name)
         except BashError:

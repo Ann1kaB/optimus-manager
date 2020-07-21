@@ -44,9 +44,6 @@ def _check_daemon_active(init):
         elif init == "systemd":
             print("sudo systemctl enable optimus-manager\n"
                   "sudo systemctl start optimus-manager\n")
-        elif init == "s6":
-            print("sudo s6-rc-bundle-update add default optimus-manager\n"
-                  "sudo s6-rc -u change optimus-mnanager\n")
         else:
             print("ERROR: unsupported init system detected!")
         sys.exit(1)

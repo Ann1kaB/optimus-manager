@@ -193,9 +193,6 @@ def _send_command(command):
             elif not checks.detect_os():
                 print("ln -s /etc/sv/optimus-manager /var/service\n"
                     "sv u optimus-manager\n" % envs.SOCKET_PATH)
-        elif _detect_init_system(init="s6"):
-            print("s6-rc-bundle-update add default optimus-manager\n"
-                "s6-rc -u change optimus-manager\n" % envs.SOCKET_PATH)
         sys.exit(1)
 
 def _set_temp_config_and_exit(rel_path):
