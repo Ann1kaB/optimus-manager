@@ -87,15 +87,15 @@ def do_xsetup(config, requested_mode, igpu):
     except BashError as e:
         logger.error("ERROR : cannot run %s : %s", script_path, str(e))
 
-        dpi_str = config["nvidia"]["dpi"]
+    dpi_str = config["nvidia"]["dpi"]
 
-        if dpi_str == "":
-            return
+    if dpi_str == "":
+        return
 
-        try:
-            exec_bash("xrandr --dpi %s" % dpi_str)
-        except BashError as e:
-            raise XorgSetupError("Cannot set DPI : %s" % str(e))
+    try:
+        exec_bash("xrandr --dpi %s" % dpi_str)
+    except BashError as e:
+        raise XorgSetupError("Cannot set DPI : %s" % str(e))
 
 
 def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
@@ -268,7 +268,7 @@ def _make_intel_device_section(config, bus_ids, xorg_extra):
         driver = "intel"
     else:
         driver = "modesetting"
-        text += "\tDriver \"%s\"\n" % driver
+    text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["intel"]
     if config["igpu"]["accel"] != "":
         text += "\tOption \"AccelMethod\" \"%s\"\n" % config["igpu"]["accel"]
@@ -298,7 +298,7 @@ def _make_amd_device_section(config, bus_ids, xorg_extra):
         driver = "amdgpu"
     else:
         driver = "modesetting"
-        text += "\tDriver \"%s\"\n" % driver
+    text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["amd"]
     if config["igpu"]["tearfree"] != "":
         tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
