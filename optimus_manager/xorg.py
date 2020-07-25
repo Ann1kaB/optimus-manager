@@ -266,7 +266,7 @@ def _make_intel_device_section(config, bus_ids, xorg_extra):
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "intel"
-    else:
+    elif config["igpu"]["driver"] != "xorg":
         driver = "modesetting"
     text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["intel"]
@@ -296,7 +296,7 @@ def _make_amd_device_section(config, bus_ids, xorg_extra):
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "amdgpu"
-    else:
+    elif config["igpu"]["driver"] != "xorg":
         driver = "modesetting"
     text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["amd"]
