@@ -6,6 +6,7 @@ from .pci import get_gpus_bus_ids, get_available_igpu
 from .config import load_extra_xorg_options
 from .hacks.manjaro import remove_mhwd_conf
 from .log_utils import get_logger
+from .checks import get_integrated_provider
 
 class XorgSetupError(Exception):
     pass
@@ -73,7 +74,8 @@ def do_xsetup(config, requested_mode, igpu):
         logger.info("Running xrandr commands")
 
         try:
-            exec_bash("xrandr --setprovideroutputsource modesetting NVIDIA-0")
+            provider = get_integrated_provider()
+            exec_bash("xrandr --setprovideroutputsource %s NVIDIA-0" % provider)
             exec_bash("xrandr --auto")
         except BashError as e:
             logger.error("Cannot setup PRIME : %s", str(e))
@@ -116,7 +118,7 @@ def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
     if igpu == "intel":
         text += "\tInactive \"intel\"\n"
     elif igpu == "amd":
-        text += "\tInactive \"amdgpu\"\n"
+        text += "\tInactive \"amd\"\n"
     text += "EndSection\n\n"
 
     text += _make_nvidia_device_section(config, bus_ids, xorg_extra)
@@ -131,16 +133,13 @@ def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
 
     text += "EndSection\n\n"
 
-    text += "Section \"Device\"\n"
+    #text += "Section \"Device\"\n"
     if igpu == "intel":
-        text += "\tIdentifier \"intel\"\n" \
-                "\tDriver \"modesetting\"\n"
+        text += _make_intel_device_section(config, bus_ids, xorg_extra)
     elif igpu == "amd":
-        text += "\tIdentifier \"amdgpu\"\n" \
-                "\tDriver \"modesetting\"\n"
+        text += _make_amd_device_section(config, bus_ids, xorg_extra)
     ## TODO: check if this is mandatorily required (and if so, generalize it for Intel/AMD) :
     #text += "\tBusID \"%s\"\n" % bus_ids["intel"] \  # (between "Driver" and "EndSection")
-    text += "EndSection\n\n"
 
     text += "Section \"Screen\"\n"
     if igpu == "intel":
@@ -272,7 +271,7 @@ def _make_intel_device_section(config, bus_ids, xorg_extra):
     text += "\tBusID \"%s\"\n" % bus_ids["intel"]
     if config["igpu"]["accel"] != "":
         text += "\tOption \"AccelMethod\" \"%s\"\n" % config["igpu"]["accel"]
-    if config["igpu"]["tearfree"] != "":
+    if config["igpu"]["tearfree"] != "" and config["igpu"]["driver"] == "xorg":
         tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
@@ -300,7 +299,7 @@ def _make_amd_device_section(config, bus_ids, xorg_extra):
         driver = "modesetting"
     text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["amd"]
-    if config["igpu"]["tearfree"] != "":
+    if config["igpu"]["tearfree"] != "" and config["igpu"]["driver"] == "xorg":
         tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
