@@ -28,7 +28,6 @@ def main():
     init = _detect_init_system()
 
     config = _get_config()
-    print("")
 
     if args.version:
         _print_version()
@@ -130,8 +129,8 @@ def _print_next_mode(state):
 
 def _print_startup_deperecation_and_exit():
     print(
-        "The argument --set-startup is deprecated. Set startup_mode through the\n"
-        "configuration file at %s instead" % envs.USER_CONFIG_PATH)
+        "The argument --set-startup is deprecated. Set startup_mode through the"
+        " configuration file at %s instead" % envs.USER_CONFIG_PATH)
     sys.exit(1)
 
 
