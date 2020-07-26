@@ -145,8 +145,8 @@ def get_integrated_provider():
 
     try:
         provider = exec_bash("xrandr --listproviders | egrep -io \"name:.*AMD.*|name:.*Intel.*\" | sed 's/name://;s/^/\"/;s/$/\"/'")
-    except BashError:
-        return provider == "modesetting"
+    except BashError as e:
+        raise CheckError("Cannot find Intel or AMD in xrandr providers : %s" % str(e))
     return provider
 
 def is_xorg_intel_module_available():
