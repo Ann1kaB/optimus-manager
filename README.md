@@ -51,7 +51,7 @@ Installation
 
 Naturally, you must have the proprietary nvidia driver installed on your system. On Archlinux, you can use the packages `nvidia` or `nvidia-dkms`. On Manjaro, it is fine to use the built-in driver utility.
 
-You can install optimus-manager from this AUR package : [optimus-manager](https://aur.archlinux.org/packages/optimus-manager/)
+You can install optimus-manager by cloning this repo and doing: `cd package` and `makepkg -si`
 
 The PKGBUILD will autodetect your init system and install the files needed for it with your choice of Display Manager (LightDM, SDDM and No Display Manager).
 
