@@ -44,6 +44,15 @@ def cleanup_xorg_conf():
         pass
 
 
+def fallback_xorg_conf(config):
+
+    logger = get_logger()
+
+    logger.info("Defaulting to integrated mode.")
+
+    configure_xorg(config, requested_gpu_mode="integrated")
+
+
 def is_xorg_running():
 
     try:
