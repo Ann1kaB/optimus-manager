@@ -2,7 +2,7 @@ import sys
 from ..config import load_config
 from ..kernel import setup_kernel_state
 from .. import var
-from ..xorg import configure_xorg, cleanup_xorg_conf
+from ..xorg import configure_xorg, default_xorg_conf, cleanup_xorg_conf
 from ..hacks.gdm import kill_gdm_server, restart_gdm_server
 from ..log_utils import set_logger_config, get_logger
 
@@ -60,11 +60,12 @@ def main():
         logger.exception("Xorg pre-start setup error")
 
         cleanup_xorg_conf()
+        default_xorg_conf(config)
 
         state = {
             "type": "pre_xorg_start_failed",
             "switch_id": switch_id,
-            "requested_mode": requested_mode
+            "requested_mode": "igpu"
         }
 
         var.write_state(state)

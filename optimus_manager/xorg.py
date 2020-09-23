@@ -11,7 +11,7 @@ from .checks import get_integrated_provider
 class XorgSetupError(Exception):
     pass
 
-    
+
 def configure_xorg(config, requested_gpu_mode):
 
     bus_ids = get_gpus_bus_ids()
@@ -39,6 +39,15 @@ def cleanup_xorg_conf():
         os.remove(envs.XORG_CONF_PATH)
     except FileNotFoundError:
         pass
+
+
+def default_xorg_conf(config):
+
+    logger = get_logger()
+
+    logger.info("Defaulting to igpu mode.")
+
+    configure_xorg(config, requested_gpu_mode="igpu")
 
 
 def is_xorg_running():
