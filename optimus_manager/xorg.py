@@ -2,11 +2,11 @@ import os
 from pathlib import Path
 from optimus_manager.bash import exec_bash, BashError
 import optimus_manager.envs as envs
+import optimus_manager.checks as checks
 from .pci import get_gpus_bus_ids, get_available_igpu
 from .config import load_extra_xorg_options
 from .hacks.manjaro import remove_mhwd_conf
 from .log_utils import get_logger
-from .checks import get_integrated_provider
 
 class XorgSetupError(Exception):
     pass
@@ -83,7 +83,7 @@ def do_xsetup(config, requested_mode, igpu):
         logger.info("Running xrandr commands")
 
         try:
-            provider = get_integrated_provider()
+            provider = checks.get_integrated_provider()
             if config["igpu"]["driver"] == "modesetting":
                 exec_bash("xrandr --setprovideroutputsource modesetting NVIDIA-0")
             else:
@@ -114,15 +114,7 @@ def do_xsetup(config, requested_mode, igpu):
 
 def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
 
-    text = "Section \"Files\"\n" \
-           "\tModulePath \"/usr/lib/nvidia\"\n" \
-           "\tModulePath \"/usr/lib32/nvidia\"\n" \
-           "\tModulePath \"/usr/lib32/nvidia/xorg/modules\"\n" \
-           "\tModulePath \"/usr/lib32/xorg/modules\"\n" \
-           "\tModulePath \"/usr/lib64/nvidia/xorg/modules\"\n" \
-           "\tModulePath \"/usr/lib64/nvidia/xorg\"\n" \
-           "\tModulePath \"/usr/lib64/xorg/modules\"\n" \
-           "EndSection\n\n"
+    text = _make_modules_paths_section()
 
     text += "Section \"ServerLayout\"\n" \
             "\tIdentifier \"layout\"\n" \
@@ -132,6 +124,7 @@ def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
     elif igpu == "amd":
         text += "\tInactive \"amd\"\n"
     text += "EndSection\n\n"
+
 
     text += _make_nvidia_device_section(config, bus_ids, xorg_extra)
 
@@ -145,13 +138,10 @@ def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
 
     text += "EndSection\n\n"
 
-    #text += "Section \"Device\"\n"
     if igpu == "intel":
         text += _make_intel_device_section(config, bus_ids, xorg_extra)
     elif igpu == "amd":
         text += _make_amd_device_section(config, bus_ids, xorg_extra)
-    ## TODO: check if this is mandatorily required (and if so, generalize it for Intel/AMD) :
-    #text += "\tBusID \"%s\"\n" % bus_ids["intel"] \  # (between "Driver" and "EndSection")
 
     text += "Section \"Screen\"\n"
     if igpu == "intel":
@@ -159,13 +149,24 @@ def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
                 "\tDevice \"intel\"\n"
     elif igpu == "amd":
         text += "\tIdentifier \"amd\"\n" \
-                "\tDevice \"amdgpu\"\n"
-    text += "EndSection\n\n"
+                "\tDevice \"amdgpu\"\n" \
+                "EndSection\n\n"
 
     text += _make_server_flags_section(config)
 
     return text
 
+def _make_modules_paths_section():
+
+    return "Section \"Files\"\n" \
+           "\tModulePath \"/usr/lib/nvidia\"\n" \
+           "\tModulePath \"/usr/lib32/nvidia\"\n" \
+           "\tModulePath \"/usr/lib32/nvidia/xorg/modules\"\n" \
+           "\tModulePath \"/usr/lib32/xorg/modules\"\n" \
+           "\tModulePath \"/usr/lib64/nvidia/xorg/modules\"\n" \
+           "\tModulePath \"/usr/lib64/nvidia/xorg\"\n" \
+           "\tModulePath \"/usr/lib64/xorg/modules\"\n" \
+           "EndSection\n\n"
 
 def _generate_igpu(config, bus_ids, xorg_extra, igpu):
     if igpu == "intel":
@@ -175,7 +176,6 @@ def _generate_igpu(config, bus_ids, xorg_extra, igpu):
     elif igpu == "amd":
         text = _make_amd_device_section(config, bus_ids, xorg_extra)
         return text
-
 
 def _generate_hybrid(config, bus_ids, xorg_extra, igpu):
 
@@ -245,6 +245,31 @@ def _generate_hybrid(config, bus_ids, xorg_extra, igpu):
 
         return text
 
+def _generate_hybrid_amd(config, bus_ids, xorg_extra):
+
+    text = _make_modules_paths_section()
+
+    text += "Section \"ServerLayout\"\n" \
+           "\tIdentifier \"layout\"\n" \
+           "\tScreen 0 \"amd\"\n" \
+           "\tOption \"AllowNVIDIAGPUScreens\"\n" \
+           "EndSection\n\n"
+
+    text += _make_amd_device_section(config, bus_ids, xorg_extra)
+
+    text += "Section \"Screen\"\n" \
+            "\tIdentifier \"amd\"\n" \
+            "\tDevice \"amd\"\n" \
+            "EndSection\n\n"
+
+    text += "Section \"Device\"\n" \
+            "\tIdentifier \"nvidia\"\n" \
+            "\tDriver \"nvidia\"\n" \
+            "EndSection\n\n"
+
+    return text
+
+
 def _make_nvidia_device_section(config, bus_ids, xorg_extra):
 
     options = config["nvidia"]["options"].replace(" ", "").split(",")
@@ -264,6 +289,7 @@ def _make_nvidia_device_section(config, bus_ids, xorg_extra):
 
     return text
 
+
 def _make_intel_device_section(config, bus_ids, xorg_extra):
 
     logger = get_logger()
@@ -272,8 +298,8 @@ def _make_intel_device_section(config, bus_ids, xorg_extra):
 
     text = "Section \"Device\"\n"
     text += "\tIdentifier \"intel\"\n"
-    if config["igpu"]["driver"] == "xorg" and not _is_intel_module_available():
-        logger.warning("The Xorg intel module is not available. Defaulting to modesetting.")
+    if config["igpu"]["driver"] == "xorg" and not checks.is_xorg_intel_module_available():
+        logger.warning("The Xorg module intel is not available. Defaulting to modesetting.")
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "intel"
@@ -294,6 +320,7 @@ def _make_intel_device_section(config, bus_ids, xorg_extra):
 
     return text
 
+
 def _make_amd_device_section(config, bus_ids, xorg_extra):
 
     logger = get_logger()
@@ -302,8 +329,8 @@ def _make_amd_device_section(config, bus_ids, xorg_extra):
 
     text = "Section \"Device\"\n"
     text += "\tIdentifier \"amd\"\n"
-    if config["igpu"]["driver"] == "xorg" and not _is_amd_module_available():
-        logger.warning("WARNING : The Xorg amdgpu module is not available. Defaulting to modesetting.")
+    if config["igpu"]["driver"] == "xorg" and not checks.is_xorg_amdgpu_module_available():
+        logger.warning("WARNING : The Xorg module amdgpu is not available. Defaulting to modesetting.")
         driver = "modesetting"
     elif config["igpu"]["driver"] == "xorg":
         driver = "amdgpu"
@@ -321,6 +348,7 @@ def _make_amd_device_section(config, bus_ids, xorg_extra):
     text += "EndSection\n\n"
 
     return text
+
 
 def _make_server_flags_section(config):
     if config["nvidia"]["ignore_abi"] == "yes":
@@ -344,9 +372,3 @@ def _write_xorg_conf(xorg_conf_text):
             f.write(xorg_conf_text)
     except IOError:
         raise XorgSetupError("Cannot write Xorg conf at %s" % str(filepath))
-
-def _is_intel_module_available():
-    return os.path.isfile("/usr/lib/xorg/modules/drivers/intel_drv.so")
-
-def _is_amd_module_available():
-    return os.path.isfile("/usr/lib/xorg/modules/drivers/amdgpu_drv.so")

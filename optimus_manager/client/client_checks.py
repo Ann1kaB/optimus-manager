@@ -3,7 +3,7 @@ from .. import checks
 from ..xorg import is_there_a_default_xorg_conf_file, is_there_a_MHWD_file
 from .. import sessions
 from .utils import ask_confirmation
-from ..pci import get_available_igpu
+from ..pci import get_available_igpu, get_gpus_bus_ids
 
 
 def run_switch_checks(config, requested_mode, igpu, init):
@@ -172,7 +172,7 @@ def _check_intel_xorg_module(config, requested_mode, igpu):
 def _check_amd_xorg_module(config, requested_mode, igpu):
 
     if igpu == "amd":
-        if requested_mode == "igpu" and config["igpu"]["driver"] == "xorg" and not checks.is_xorg_amd_module_available():
+        if requested_mode == "igpu" and config["igpu"]["driver"] == "xorg" and not checks.is_xorg_amdgpu_module_available():
             print("WARNING : The Xorg driver \"amdgpu\" is selected in the configuration file but this driver is not installed."
                 " optimus-manager will default to the \"modesetting\" driver instead. You can install the \"amdgpu\" driver from"
                 " the package \"xf86-video-amdgpu\".\n"

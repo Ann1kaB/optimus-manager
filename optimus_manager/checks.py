@@ -77,7 +77,7 @@ def _detect_init_system():
 
     process = psutil.Process(1)
     process_name = process.name()
-    
+
     if process_name == "runit":
         if detect_os():
             init = "runit-artix"
@@ -154,7 +154,7 @@ def get_integrated_provider():
 def is_xorg_intel_module_available():
     return os.path.isfile("/usr/lib/xorg/modules/drivers/intel_drv.so")
 
-def is_xorg_amd_module_available():
+def is_xorg_amdgpu_module_available():
     return os.path.isfile("/usr/lib/xorg/modules/drivers/amdgpu_drv.so")
 
 def is_login_manager_active():
@@ -162,7 +162,7 @@ def is_login_manager_active():
 
 def is_elogind_active():
     return _is_service_active("elogind")
-    
+
 def is_lxdm_active():
     return _is_service_active("lxdm")
 

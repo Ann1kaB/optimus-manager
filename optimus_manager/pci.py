@@ -95,13 +95,21 @@ def get_gpus_bus_ids(notation_fix=True):
 
     logger = get_logger()
 
-    nvidia_ids_list = _get_bus_ids(match_pci_class=GPU_PCI_CLASS_PATTERN,
-                                   match_vendor_id=NVIDIA_VENDOR_ID,
-                                   notation_fix=notation_fix)
+    nvidia_ids_list = _get_bus_ids(
+        match_pci_class=GPU_PCI_CLASS_PATTERN,
+        match_vendor_id=NVIDIA_VENDOR_ID,
+        notation_fix=notation_fix)
 
-    intel_ids_list = _get_bus_ids(match_pci_class=GPU_PCI_CLASS_PATTERN,
-                                  match_vendor_id=INTEL_VENDOR_ID,
-                                  notation_fix=notation_fix)
+    intel_ids_list = _get_bus_ids(
+        match_pci_class=GPU_PCI_CLASS_PATTERN,
+        match_vendor_id=INTEL_VENDOR_ID,
+        notation_fix=notation_fix)
+
+    amd_ids_list = _get_bus_ids(
+        match_pci_class=GPU_PCI_CLASS_PATTERN,
+        match_vendor_id=AMD_VENDOR_ID,
+        notation_fix=notation_fix)
+
 
     amd_ids_list = _get_bus_ids(match_pci_class=GPU_PCI_CLASS_PATTERN,
                                   match_vendor_id=AMD_VENDOR_ID,
@@ -114,7 +122,7 @@ def get_gpus_bus_ids(notation_fix=True):
         logger.warning("Multiple Intel GPUs found ! Picking the first one.")
 
     if len(amd_ids_list) > 1:
-        print("WARNING : Multiple AMD GPUs found ! Picking the first one.")
+        logger.warning("Multiple AMD GPUs found ! Picking the first one.")
 
     bus_ids = {}
     if len(nvidia_ids_list) > 0:
@@ -192,7 +200,7 @@ def _get_bus_ids(match_pci_class, match_vendor_id, notation_fix=True):
 
 
 def get_available_igpu(notation_fix=True):
-    
+
     try:
         lspci_output = exec_bash("lspci -n")
     except BashError as e:

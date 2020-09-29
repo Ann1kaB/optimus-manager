@@ -116,6 +116,7 @@ def _load_nvidia_modules(config, available_modules):
 
 def _load_nouveau(config, available_modules):
 
+    # TODO: move that option to [optimus]
     modeset_value = 1 if config["igpu"]["modeset"] == "yes" else 0
 
     _load_module(available_modules, "nouveau", options="modeset=%d" % modeset_value)
