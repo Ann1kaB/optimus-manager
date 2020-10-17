@@ -1,0 +1,5 @@
+#!/usr/local/bin/bash
+
+/usr/local/bin/python3 -u -m optimus_manager.hooks.pre_daemon_start
+/usr/local/bin/python3 -u -m optimus_manager.hooks.pre_xorg_start
+exec /usr/local/bin/python3 -u -m optimus_manager.daemon

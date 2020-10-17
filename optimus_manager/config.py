@@ -7,6 +7,7 @@ import configparser
 from . import envs
 from . import var
 from .log_utils import get_logger
+from .checks import is_bsd
 
 class ConfigError(Exception):
     pass
@@ -22,7 +23,10 @@ def _load_config():
     logger = get_logger()
 
     base_config = configparser.ConfigParser()
-    base_config.read(envs.DEFAULT_CONFIG_PATH)
+    if not is_bsd():
+        base_config.read(envs.DEFAULT_CONFIG_PATH)
+    else:
+        base_config.read(envs.DEFAULT_BSD_CONFIG_PATH)
     base_config = _parsed_config_to_dict(base_config)
     _validate_config(base_config)
 
@@ -31,7 +35,10 @@ def _load_config():
 
     try:
         user_config = configparser.ConfigParser()
-        user_config.read([envs.DEFAULT_CONFIG_PATH, envs.USER_CONFIG_COPY_PATH])
+        if not is_bsd():
+            user_config.read([envs.DEFAULT_CONFIG_PATH, envs.USER_CONFIG_COPY_PATH])
+        else:
+            user_config.read([envs.DEFAULT_BSD_CONFIG_PATH, envs.USER_CONFIG_COPY_PATH])
         user_config = _parsed_config_to_dict(user_config)
     except configparser.ParsingError as e:
         logger.error(

@@ -45,7 +45,7 @@ def _nvidia_up(config, hybrid):
     elif switching_mode == "custom":
         _try_custom_set_power_state("ON")
 
-    if not pci.is_nvidia_visible():
+    if not pci.is_nvidia_visible() and not checks.is_bsd():
         logger.info("Nvidia card not visible in PCI bus, rescanning")
         _try_rescan_pci()
 
@@ -103,7 +103,10 @@ def _nvidia_down(config):
 
 
 def _get_available_modules():
-    MODULES = ["nouveau", "bbswitch", "acpi_call", "nvidia", "nvidia_drm", "nvidia_modeset", "nvidia_uvm"]
+    if not checks.is_bsd():
+        MODULES = ["nouveau", "bbswitch", "acpi_call", "nvidia", "nvidia_drm", "nvidia_modeset", "nvidia_uvm"]
+    else:
+        MODULES = ["nvidia.ko", "nvidia-modeset.ko"]
     return [module for module in MODULES if checks.is_module_available(module)]
 
 def _load_nvidia_modules(config, available_modules):
@@ -111,8 +114,12 @@ def _load_nvidia_modules(config, available_modules):
     pat_value = _get_PAT_parameter_value(config)
     modeset_value = 1 if config["nvidia"]["modeset"] == "yes" else 0
 
-    _load_module(available_modules, "nvidia", options="NVreg_UsePageAttributeTable=%d" % pat_value)
-    _load_module(available_modules, "nvidia_drm", options="modeset=%d" % modeset_value)
+    if not checks.is_bsd():
+        _load_module(available_modules, "nvidia", options="NVreg_UsePageAttributeTable=%d" % pat_value)
+        _load_module(available_modules, "nvidia_drm", options="modeset=%d" % modeset_value)
+    else:
+        _load_module(available_modules, "nvidia.ko", options="NVreg_UsePageAttributeTable=%d" % pat_value)
+
 
 def _load_nouveau(config, available_modules):
 
@@ -216,9 +223,14 @@ def _load_module(available_modules, module, options=None):
             "module %s is not available for current kernel."
             " Is the corresponding package installed ?" % module)
     try:
-        exec_bash("modprobe %s %s" % (module, options))
+        if not checks.is_bsd():
+            exec_bash("modprobe %s %s" % (module, options))
+            module_command = "modprobe"
+        else:
+            exec_bash("kldload -n %s" % module)
+            module_command = "kldload"
     except BashError as e:
-        raise KernelSetupError("error running modprobe for %s : %s" % (module, str(e)))
+        raise KernelSetupError("error running %s for %s : %s" % (module_command, module, str(e)))
 
 def _unload_modules(available_modules, modules_list):
 

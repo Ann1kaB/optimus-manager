@@ -138,7 +138,7 @@ def get_gpus_bus_ids(notation_fix=True):
 def _get_audio_bus_ids(match_audio_pci_class, match_vendor_id, notation_fix=True):
 
     try:
-        out = exec_bash("lspci -n")
+        out = exec_bash("sudo lspci -n")
     except BashError as e:
         raise PCIError("cannot run lspci -n : %s" % str(e))
 
@@ -170,7 +170,7 @@ def _get_audio_bus_ids(match_audio_pci_class, match_vendor_id, notation_fix=True
 def _get_bus_ids(match_pci_class, match_vendor_id, notation_fix=True):
 
     try:
-        out = exec_bash("lspci -n")
+        out = exec_bash("sudo lspci -n")
     except BashError as e:
         raise PCIError("cannot run lspci -n : %s" % str(e))
 
@@ -202,13 +202,13 @@ def _get_bus_ids(match_pci_class, match_vendor_id, notation_fix=True):
 def get_available_igpu(notation_fix=True):
 
     try:
-        lspci_output = exec_bash("lspci -n")
+        out = exec_bash("sudo lspci -n")
     except BashError as e:
         raise PCIError("cannot run lspci -n : %s" % str(e))
 
     detected_igpu = "intel"
 
-    for line in lspci_output.splitlines():
+    for line in out.splitlines():
         items = line.split(" ")
         bus_id = items[0]
 

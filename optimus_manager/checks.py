@@ -1,9 +1,9 @@
 import os
 import psutil
+from platform import system
 from pathlib import Path
 import re
 import dbus
-import psutil
 import py3nvml.py3nvml as nvml
 from .bash import exec_bash, BashError
 from .log_utils import get_logger
@@ -40,6 +40,13 @@ def is_pat_available():
     except BashError:
         return False
 
+def is_bsd():
+    system_os = system()
+    if system_os != "Linux":
+        return True
+    else:
+        return False
+
 
 def get_active_renderer():
 
@@ -55,7 +62,10 @@ def get_active_renderer():
 def is_module_available(module_name):
 
     try:
-        exec_bash("modinfo %s" % module_name)
+        if not is_bsd():
+            exec_bash("modinfo %s" % module_name)
+        else:
+            exec_bash("ls /boot/modules | grep %s" % module_name)
     except BashError:
         return False
     else:
@@ -70,7 +80,7 @@ def is_module_loaded(module_name):
     else:
         return True
 
-def detect_os():
+def alt_runit_path():
     return os.path.isdir("/run/runit/service")
 
 def _detect_init_system():
@@ -79,14 +89,19 @@ def _detect_init_system():
     process_name = process.name()
 
     if process_name == "runit":
-        if detect_os():
+        if alt_runit_path():
             init = "runit-artix"
         else:
             init = "runit-void"
     elif process_name == "systemd":
         init = "systemd"
     elif process_name == "openrc-init":
-        init ="openrc"
+        init = "openrc"
+    # FreeBSD init is literally init
+    elif process_name == "init":
+        init = "bsd"
+    else:
+        init is None
 
     return init
 
@@ -237,7 +252,7 @@ def get_integrated_gpu():
 
 def _is_service_active(service_name):
 
-    if _is_elogind_present():
+    if _is_elogind_present() or is_bsd():
         return _is_service_active_bash(service_name)
     else:
         pass
@@ -294,6 +309,14 @@ def _is_service_active_bash(service_name):
     elif init in ["runit-void", "runit-artix"]:
         try:
             exec_bash("pgrep -a %s" % service_name)
+        except BashError:
+            return False
+        else:
+            return True
+
+    elif init == "bsd":
+        try:
+            exec_bash("service %s status" % service_name)
         except BashError:
             return False
         else:

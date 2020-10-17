@@ -44,6 +44,8 @@ def _check_daemon_active(init):
         elif init == "systemd":
             print("sudo systemctl enable optimus-manager\n"
                   "sudo systemctl start optimus-manager\n")
+        elif init == "bsd":
+            print("sudo service start optimus_manager\n")
         else:
             print("ERROR: unsupported init system detected!")
         sys.exit(1)

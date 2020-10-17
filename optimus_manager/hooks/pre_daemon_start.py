@@ -2,7 +2,7 @@ import sys
 from ..config import load_config, copy_user_config
 from .. import var
 from ..xorg import cleanup_xorg_conf
-from ..checks import is_ac_power_connected
+from ..checks import is_ac_power_connected, is_bsd
 from ..kernel_parameters import get_kernel_parameters
 from ..log_utils import set_logger_config, get_logger
 
@@ -25,10 +25,12 @@ def main():
         cleanup_xorg_conf()
         copy_user_config()
         config = load_config()
-
-        kernel_parameters = get_kernel_parameters()
-        if kernel_parameters["startup_mode"] is not None:
-            startup_mode = kernel_parameters["startup_mode"]
+        if not is_bsd():
+            kernel_parameters = get_kernel_parameters()
+            if kernel_parameters["startup_mode"] is not None:
+                startup_mode = kernel_parameters["startup_mode"]
+            else:
+                startup_mode = config["optimus"]["startup_mode"]
         else:
             startup_mode = config["optimus"]["startup_mode"]
 
