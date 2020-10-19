@@ -116,7 +116,7 @@ def get_gpus_bus_ids(notation_fix=True):
     if len(intel_ids_list) > 0:
         bus_ids["intel"] = intel_ids_list[0]
     if len(amd_ids_list) > 0:
-        bus_ids["amd"] = amd_ids_list[0]
+        bus_ids["amdgpu"] = amd_ids_list[0]
 
     return bus_ids
 

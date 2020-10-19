@@ -7,6 +7,7 @@ import psutil
 import py3nvml.py3nvml as nvml
 from .bash import exec_bash, BashError
 from .log_utils import get_logger
+from .pci import get_gpus_bus_ids
 
 
 class CheckError(Exception):
@@ -151,11 +152,14 @@ def get_integrated_provider():
         raise CheckError("Cannot find Intel or AMD in xrandr providers : %s" % str(e))
     return provider
 
-def is_xorg_intel_module_available():
-    return os.path.isfile("/usr/lib/xorg/modules/drivers/intel_drv.so")
+def is_xorg_integrated_module_available():
 
-def is_xorg_amdgpu_module_available():
-    return os.path.isfile("/usr/lib/xorg/modules/drivers/amdgpu_drv.so")
+    bus_ids = get_gpus_bus_ids()
+
+    if "intel" in bus_ids:
+        return os.path.isfile("/usr/lib/xorg/modules/drivers/intel_drv.so")
+    else:
+        return os.path.isfile("/usr/lib/xorg/modules/drivers/amdgpu_drv.so")
 
 def is_login_manager_active():
     return _is_service_active("display-manager")
