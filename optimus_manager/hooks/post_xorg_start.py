@@ -3,7 +3,6 @@ from ..config import load_config
 from .. import var
 from ..xorg import do_xsetup
 from ..log_utils import set_logger_config, get_logger
-from ..pci import get_available_igpu
 
 
 def main():
@@ -19,7 +18,6 @@ def main():
     logger = get_logger()
 
     requested_mode = None
-    igpu = get_available_igpu()
 
     try:
         logger.info("# Xorg post-start hook")
@@ -27,8 +25,8 @@ def main():
         requested_mode = prev_state["requested_mode"]
 
         config = load_config()
-        do_xsetup(config, requested_mode, igpu)
-        
+        do_xsetup(config, requested_mode)
+
 
         state = {
             "type": "done",

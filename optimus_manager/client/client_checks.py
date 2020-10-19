@@ -3,10 +3,12 @@ from .. import checks
 from ..xorg import is_there_a_default_xorg_conf_file, is_there_a_MHWD_file
 from .. import sessions
 from .utils import ask_confirmation
-from ..pci import get_available_igpu, get_gpus_bus_ids
+from ..pci import get_gpus_bus_ids
 
 
-def run_switch_checks(config, requested_mode, igpu, init):
+def run_switch_checks(config, requested_mode, init):
+
+    bus_ids = get_gpus_bus_ids()
 
     _check_elogind_active(init)
     _check_daemon_active(init)
@@ -18,8 +20,12 @@ def run_switch_checks(config, requested_mode, igpu, init):
     _check_bumblebeed()
     _check_xorg_conf()
     _check_MHWD_conf()
-    _check_intel_xorg_module(config, requested_mode, igpu)
-    _check_amd_xorg_module(config, requested_mode, igpu)
+
+    if "intel" in bus_ids:
+        _check_intel_xorg_module(config, requested_mode)
+    else:
+        _check_amd_xorg_module(config, requested_mode)
+
     _check_number_of_sessions()
 
 
@@ -155,33 +161,31 @@ def _check_MHWD_conf():
         if not confirmation:
             sys.exit(0)
 
-def _check_intel_xorg_module(config, requested_mode, igpu):
+def _check_intel_xorg_module(config, requested_mode):
 
-    if igpu == "intel":
-        if requested_mode == "igpu" and config["igpu"]["driver"] == "xorg" and not checks.is_xorg_intel_module_available():
-            print("WARNING : The Xorg driver \"intel\" is selected in the configuration file but this driver is not installed."
-                " optimus-manager will default to the \"modesetting\" driver instead. You can install the \"intel\" driver from"
-                " the package \"xf86-video-intel.\"\n"
-                "Continue ? (y/N)")
+    if requested_mode == "integrated" and config["integrated"]["driver"] == "xorg" and not checks.is_xorg_intel_module_available():
+        print("WARNING : The Xorg driver \"intel\" is selected in the configuration file but this driver is not installed."
+            " optimus-manager will default to the \"modesetting\" driver instead. You can install the \"intel\" driver from"
+            " the package \"xf86-video-intel.\"\n"
+            "Continue ? (y/N)")
 
-            confirmation = ask_confirmation()
+        confirmation = ask_confirmation()
 
-            if not confirmation:
-                sys.exit(0)
+        if not confirmation:
+            sys.exit(0)
 
-def _check_amd_xorg_module(config, requested_mode, igpu):
+def _check_amd_xorg_module(config, requested_mode):
 
-    if igpu == "amd":
-        if requested_mode == "igpu" and config["igpu"]["driver"] == "xorg" and not checks.is_xorg_amdgpu_module_available():
-            print("WARNING : The Xorg driver \"amdgpu\" is selected in the configuration file but this driver is not installed."
-                " optimus-manager will default to the \"modesetting\" driver instead. You can install the \"amdgpu\" driver from"
-                " the package \"xf86-video-amdgpu\".\n"
-                "Continue ? (y/N)")
+    if requested_mode == "integrated" and config["integrated"]["driver"] == "xorg" and not checks.is_xorg_amdgpu_module_available():
+        print("WARNING : The Xorg driver \"amdgpu\" is selected in the configuration file but this driver is not installed."
+            " optimus-manager will default to the \"modesetting\" driver instead. You can install the \"amdgpu\" driver from"
+            " the package \"xf86-video-amdgpu\".\n"
+            "Continue ? (y/N)")
 
-            confirmation = _ask_confirmation()
+        confirmation = _ask_confirmation()
 
-            if not confirmation:
-                sys.exit(0)
+        if not confirmation:
+            sys.exit(0)
 
 def _check_number_of_sessions():
 

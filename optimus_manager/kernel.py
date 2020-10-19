@@ -6,7 +6,7 @@ from . import pci
 from .acpi_data import ACPI_STRINGS
 from .bash import exec_bash, BashError
 from .log_utils import get_logger
-from .pci import get_available_igpu
+import py3nvml.py3nvml as nvml
 
 class KernelSetupError(Exception):
     pass
@@ -14,15 +14,15 @@ class KernelSetupError(Exception):
 
 def setup_kernel_state(config, prev_state, requested_mode):
 
-    assert requested_mode in ["igpu", "nvidia", "hybrid"]
+    assert requested_mode in ["integrated", "nvidia", "hybrid"]
     assert prev_state["type"] == "pending_pre_xorg_start"
 
     current_mode = prev_state["current_mode"]
 
-    if current_mode in ["igpu", None] and requested_mode in ["nvidia", "hybrid"]:
+    if current_mode in ["integrated", None] and requested_mode in ["nvidia", "hybrid"]:
         _nvidia_up(config, hybrid=(requested_mode == "hybrid"))
 
-    elif current_mode in ["nvidia", "hybrid", None] and requested_mode == "igpu":
+    elif current_mode in ["nvidia", "hybrid", None] and requested_mode == "integrated":
         _nvidia_down(config)
 
 
@@ -64,7 +64,11 @@ def _nvidia_down(config):
     available_modules = _get_available_modules()
     logger.info("Available modules: %s", str(available_modules))
 
-    _wait_no_processes_on_nvidia()
+    try:
+        _wait_no_processes_on_nvidia()
+    except nvml.NVMLError as e:
+        logger.error("Py3nvml process check failed. Continuing anyways. Error is: %s" % str(e))
+        pass
     _unload_nvidia_modules(available_modules)
 
     switching_mode = config["optimus"]["switching"]
@@ -87,8 +91,6 @@ def _nvidia_down(config):
         else:
             logger.info("Removing Nvidia from PCI bus")
             _try_remove_pci()
-            logger.info("Removing Nvidia Audio from PCI bus")
-            _try_remove_audio_pci()
 
 
     if config["optimus"]["pci_power_control"] == "yes":
@@ -117,7 +119,7 @@ def _load_nvidia_modules(config, available_modules):
 def _load_nouveau(config, available_modules):
 
     # TODO: move that option to [optimus]
-    modeset_value = 1 if config["igpu"]["modeset"] == "yes" else 0
+    modeset_value = 1 if config["integrated"]["modeset"] == "yes" else 0
 
     _load_module(available_modules, "nouveau", options="modeset=%d" % modeset_value)
 
@@ -310,17 +312,6 @@ def _set_acpi_call_state(state):
 
     var.write_last_acpi_call_state(state)
     var.write_acpi_call_strings(working_strings)
-
-def _try_remove_audio_pci():
-
-    logger = get_logger()
-
-    try:
-        pci.remove_nvidia_audio()
-    except pci.PCIError as e:
-        logger.error(
-            "Cannot remove Nvidia Audio from PCI bus. Continuing anyways. Error is: %s", str(e))
-
 
 
 def _try_remove_pci():

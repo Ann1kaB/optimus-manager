@@ -3,7 +3,7 @@ from pathlib import Path
 from optimus_manager.bash import exec_bash, BashError
 import optimus_manager.envs as envs
 import optimus_manager.checks as checks
-from .pci import get_gpus_bus_ids, get_available_igpu
+from .pci import get_gpus_bus_ids
 from .config import load_extra_xorg_options
 from .hacks.manjaro import remove_mhwd_conf
 from .log_utils import get_logger
@@ -16,14 +16,13 @@ def configure_xorg(config, requested_gpu_mode):
 
     bus_ids = get_gpus_bus_ids()
     xorg_extra = load_extra_xorg_options()
-    igpu = get_available_igpu()
 
     if requested_gpu_mode == "nvidia":
-        xorg_conf_text = _generate_nvidia(config, bus_ids, xorg_extra, igpu)
-    elif requested_gpu_mode == "igpu":
-        xorg_conf_text = _generate_igpu(config, bus_ids, xorg_extra, igpu)
+        xorg_conf_text = _generate_nvidia(config, bus_ids, xorg_extra)
+    elif requested_gpu_mode == "integrated":
+        xorg_conf_text = _generate_integrated(config, bus_ids, xorg_extra)
     elif requested_gpu_mode == "hybrid":
-        xorg_conf_text = _generate_hybrid(config, bus_ids, xorg_extra, igpu)
+        xorg_conf_text = _generate_hybrid(config, bus_ids, xorg_extra)
 
     remove_mhwd_conf()
     _write_xorg_conf(xorg_conf_text)
@@ -45,9 +44,9 @@ def default_xorg_conf(config):
 
     logger = get_logger()
 
-    logger.info("Defaulting to igpu mode.")
+    logger.info("Defaulting to integrated mode.")
 
-    configure_xorg(config, requested_gpu_mode="igpu")
+    configure_xorg(config, requested_gpu_mode="integrated")
 
 
 def is_xorg_running():
@@ -75,7 +74,7 @@ def is_there_a_MHWD_file():
     return os.path.isfile("/etc/X11/xorg.conf.d/90-mhwd.conf")
 
 
-def do_xsetup(config, requested_mode, igpu):
+def do_xsetup(config, requested_mode):
 
     logger = get_logger()
 
@@ -84,18 +83,18 @@ def do_xsetup(config, requested_mode, igpu):
 
         try:
             provider = checks.get_integrated_provider()
-            if config["igpu"]["driver"] == "modesetting":
+            if config["integrated"]["driver"] == "modesetting":
                 exec_bash("xrandr --setprovideroutputsource modesetting NVIDIA-0")
             else:
                 exec_bash("xrandr --setprovideroutputsource %s NVIDIA-0" % provider)
             exec_bash("xrandr --auto")
         except BashError as e:
             logger.error("Cannot setup PRIME : %s", str(e))
-    if requested_mode == "igpu":
-        script_path = envs.XSETUP_SCRIPTS_PATHS[igpu]
-    else:
-        script_path = envs.XSETUP_SCRIPTS_PATHS[requested_mode]
+
+    script_path = envs.XSETUP_SCRIPTS_PATHS[requested_mode]
+
     logger.info("Running %s", script_path)
+
     try:
         exec_bash(script_path)
     except BashError as e:
@@ -112,16 +111,16 @@ def do_xsetup(config, requested_mode, igpu):
         raise XorgSetupError("Cannot set DPI : %s" % str(e))
 
 
-def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
+def _generate_nvidia(config, bus_ids, xorg_extra):
 
     text = _make_modules_paths_section()
 
     text += "Section \"ServerLayout\"\n" \
             "\tIdentifier \"layout\"\n" \
             "\tScreen 0 \"nvidia\"\n"
-    if igpu == "intel":
+    if "intel" in bus_ids:
         text += "\tInactive \"intel\"\n"
-    elif igpu == "amd":
+    else:
         text += "\tInactive \"amd\"\n"
     text += "EndSection\n\n"
 
@@ -138,16 +137,16 @@ def _generate_nvidia(config, bus_ids, xorg_extra, igpu):
 
     text += "EndSection\n\n"
 
-    if igpu == "intel":
+    if "intel" in bus_ids:
         text += _make_intel_device_section(config, bus_ids, xorg_extra)
-    elif igpu == "amd":
+    else:
         text += _make_amd_device_section(config, bus_ids, xorg_extra)
 
     text += "Section \"Screen\"\n"
-    if igpu == "intel":
+    if "intel" in bus_ids:
         text += "\tIdentifier \"intel\"\n" \
                 "\tDevice \"intel\"\n"
-    elif igpu == "amd":
+    else:
         text += "\tIdentifier \"amd\"\n" \
                 "\tDevice \"amdgpu\"\n" \
                 "EndSection\n\n"
@@ -168,24 +167,24 @@ def _make_modules_paths_section():
            "\tModulePath \"/usr/lib64/xorg/modules\"\n" \
            "EndSection\n\n"
 
-def _generate_igpu(config, bus_ids, xorg_extra, igpu):
-    if igpu == "intel":
+def _generate_integrated(config, bus_ids, xorg_extra):
+    if "intel" in bus_ids:
         text = _make_intel_device_section(config, bus_ids, xorg_extra)
         return text
 
-    elif igpu == "amd":
+    else:
         text = _make_amd_device_section(config, bus_ids, xorg_extra)
         return text
 
-def _generate_hybrid(config, bus_ids, xorg_extra, igpu):
+def _generate_hybrid(config, bus_ids, xorg_extra):
 
-    if igpu == "intel":
+    if "intel" in bus_ids:
         text = "Section \"ServerLayout\"\n" \
                "\tIdentifier \"layout\"\n" \
                "\tScreen 0 \"intel\"\n" \
                "\tInactive \"nvidia\"\n"
-        if config["igpu"]["reverseprime"] != "":
-            reverseprime_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["reverseprime"]]
+        if config["integrated"]["reverseprime"] != "":
+            reverseprime_enabled_str = {"yes": "true", "no": "false"}[config["integrated"]["reverseprime"]]
             text += "\tOption \"AllowPRIMEDisplayOffloadSink\" \"%s\"\n" % reverseprime_enabled_str
         text += "\tOption \"AllowNVIDIAGPUScreens\"\n" \
                 "EndSection\n\n"
@@ -212,13 +211,13 @@ def _generate_hybrid(config, bus_ids, xorg_extra, igpu):
 
         return text
 
-    elif igpu == "amd":
+    else:
         text = "Section \"ServerLayout\"\n" \
                "\tIdentifier \"layout\"\n" \
                "\tScreen 0 \"amd\"\n" \
                "\tInactive \"nvidia\"\n"
-        if config["igpu"]["reverseprime"] != "":
-            reverseprime_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["reverseprime"]]
+        if config["integrated"]["reverseprime"] != "":
+            reverseprime_enabled_str = {"yes": "true", "no": "false"}[config["integrated"]["reverseprime"]]
             text += "\tOption \"AllowPRIMEDisplayOffloadSink\" \"%s\"\n" % reverseprime_enabled_str
         text += "\tOption \"AllowNVIDIAGPUScreens\"\n" \
                 "EndSection\n\n"
@@ -294,23 +293,23 @@ def _make_intel_device_section(config, bus_ids, xorg_extra):
 
     logger = get_logger()
 
-    dri = int(config["igpu"]["dri"])
+    dri = int(config["integrated"]["dri"])
 
     text = "Section \"Device\"\n"
     text += "\tIdentifier \"intel\"\n"
-    if config["igpu"]["driver"] == "xorg" and not checks.is_xorg_intel_module_available():
+    if config["integrated"]["driver"] == "xorg" and not checks.is_xorg_intel_module_available():
         logger.warning("The Xorg module intel is not available. Defaulting to modesetting.")
         driver = "modesetting"
-    elif config["igpu"]["driver"] == "xorg":
+    elif config["integrated"]["driver"] == "xorg":
         driver = "intel"
-    elif config["igpu"]["driver"] != "xorg":
+    elif config["integrated"]["driver"] != "xorg":
         driver = "modesetting"
     text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["intel"]
-    if config["igpu"]["accel"] != "":
-        text += "\tOption \"AccelMethod\" \"%s\"\n" % config["igpu"]["accel"]
-    if config["igpu"]["tearfree"] != "" and config["igpu"]["driver"] == "xorg":
-        tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
+    if config["integrated"]["accel"] != "":
+        text += "\tOption \"AccelMethod\" \"%s\"\n" % config["integrated"]["accel"]
+    if config["integrated"]["tearfree"] != "" and config["integrated"]["driver"] == "xorg":
+        tearfree_enabled_str = {"yes": "true", "no": "false"}[config["integrated"]["tearfree"]]
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
     if "intel" in xorg_extra.keys():
@@ -325,21 +324,21 @@ def _make_amd_device_section(config, bus_ids, xorg_extra):
 
     logger = get_logger()
 
-    dri = int(config["igpu"]["dri"])
+    dri = int(config["integrated"]["dri"])
 
     text = "Section \"Device\"\n"
     text += "\tIdentifier \"amd\"\n"
-    if config["igpu"]["driver"] == "xorg" and not checks.is_xorg_amdgpu_module_available():
+    if config["integrated"]["driver"] == "xorg" and not checks.is_xorg_amdgpu_module_available():
         logger.warning("WARNING : The Xorg module amdgpu is not available. Defaulting to modesetting.")
         driver = "modesetting"
-    elif config["igpu"]["driver"] == "xorg":
+    elif config["integrated"]["driver"] == "xorg":
         driver = "amdgpu"
-    elif config["igpu"]["driver"] != "xorg":
+    elif config["integrated"]["driver"] != "xorg":
         driver = "modesetting"
     text += "\tDriver \"%s\"\n" % driver
     text += "\tBusID \"%s\"\n" % bus_ids["amd"]
-    if config["igpu"]["tearfree"] != "" and config["igpu"]["driver"] == "xorg":
-        tearfree_enabled_str = {"yes": "true", "no": "false"}[config["igpu"]["tearfree"]]
+    if config["integrated"]["tearfree"] != "" and config["integrated"]["driver"] == "xorg":
+        tearfree_enabled_str = {"yes": "true", "no": "false"}[config["integrated"]["tearfree"]]
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
     if "amd" in xorg_extra.keys():

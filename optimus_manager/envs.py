@@ -1,4 +1,4 @@
-VERSION = "1.3.5"
+VERSION = "1.3"
 
 SOCKET_PATH = "/tmp/optimus-manager"
 SOCKET_TIMEOUT = 1.0
@@ -19,15 +19,16 @@ DEFAULT_CONFIG_PATH = "/usr/share/optimus-manager.conf"
 USER_CONFIG_PATH = "/etc/optimus-manager/optimus-manager.conf"
 
 EXTRA_XORG_OPTIONS_PATHS = {
-    "intel": "/etc/optimus-manager/xorg-igpu.conf",
-    "amd": "/etc/optimus-manager/xorg-igpu.conf",
+    "integrated": "/etc/optimus-manager/xorg-integrated.conf",
     "nvidia": "/etc/optimus-manager/xorg-nvidia.conf",
     "hybrid": "/etc/optimus-manager/xorg-hybrid.conf",
 }
 
 XSETUP_SCRIPTS_PATHS = {
-    "intel": "/etc/optimus-manager/xsetup-igpu.sh",
-    "amd": "/etc/optimus-manager/xsetup-igpu.sh",
+
+    "intel": "/etc/optimus-manager/xsetup-intel.sh", # DEPRECATED
+
+    "integrated": "/etc/optimus-manager/xsetup-integrated.sh",
     "nvidia": "/etc/optimus-manager/xsetup-nvidia.sh",
     "hybrid": "/etc/optimus-manager/xsetup-hybrid.sh",
 }

@@ -1,5 +1,4 @@
 from .. import envs
-from ..pci import get_available_igpu
 from ..checks import get_active_renderer, check_offloading_available, CheckError
 
 
@@ -43,18 +42,12 @@ def report_errors(state):
         return True
 
     elif state["type"] == "done":
-        if get_available_igpu() == "amd":
-            expected_renderer = {
-                "igpu": "amd",
-                "hybrid": "hybrid-amd",
-                "nvidia": "nvidia",
-            }[state["current_mode"]]
-        elif get_available_igpu() == "intel":
-            expected_renderer = {
-                "igpu": "intel",
-                "hybrid": "hybrid-intel",
-                "nvidia": "nvidia",
-            }[state["current_mode"]]
+
+        expected_renderer = {
+            "integrated": "integrated",
+            "hybrid": "integrated",
+            "nvidia": "nvidia",
+        }[state["current_mode"]]
 
         try:
             active_renderer = get_active_renderer()
@@ -70,7 +63,7 @@ def report_errors(state):
             print("Log at %s/switch/switch-%s.log" % (envs.LOG_DIR_PATH, state["switch_id"]))
             return True
 
-        if state["current_mode"] in ["hybrid-intel", "hybrid-amd"] and not check_offloading_available():
+        if state["current_mode"] == "hybrid" and not check_offloading_available():
             print("WARNING: hybrid mode is set but Nvidia card does not seem to be available for offloading.")
             print("Log at %s/switch/switch-%s.log" % (envs.LOG_DIR_PATH, state["switch_id"]))
 

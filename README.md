@@ -113,7 +113,7 @@ Usage
 
 Run
 * `optimus-manager --switch nvidia` to switch to the Nvidia GPU
-* `optimus-manager --switch igpu` to switch to the iGPU and power the Nvidia GPU off
+* `optimus-manager --switch integrated` to switch to the iGPU and power the Nvidia GPU off
 * `optimus-manager --switch hybrid` to switch to the iGPU but leave the Nvidia GPU available for on-demand offloading, similar to how Optimus works on Windows. See [the Wiki](https://github.com/Askannz/optimus-manager/wiki/Nvidia-GPU-offloading-for-%22hybrid%22-mode) for more details
 
 (Note: `auto` and `ac_auto` are deprecated and removed from the -git version)

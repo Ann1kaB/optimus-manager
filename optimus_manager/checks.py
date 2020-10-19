@@ -47,9 +47,9 @@ def get_active_renderer():
         return "nvidia"
     else:
         if check_offloading_available():
-            return "hybrid-" + get_integrated_gpu()
+            return "hybrid"
         else:
-            return get_integrated_gpu()
+            return "integrated"
 
 
 def is_module_available(module_name):
@@ -224,15 +224,6 @@ def _is_gl_provider_nvidia():
 
 def _is_elogind_present():
     return os.path.isfile("/usr/lib/libelogind.so.0")
-
-
-def get_integrated_gpu():
-
-    try:
-        exec_bash("glxinfo | awk '/Vendor:/{print $2}'| grep 'X.Org'")
-        return "amd"
-    except BashError:
-        return "intel"
 
 
 def _is_service_active(service_name):

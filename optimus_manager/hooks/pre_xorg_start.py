@@ -65,7 +65,7 @@ def main():
         state = {
             "type": "pre_xorg_start_failed",
             "switch_id": switch_id,
-            "requested_mode": "igpu"
+            "requested_mode": "integrated"
         }
 
         var.write_state(state)
