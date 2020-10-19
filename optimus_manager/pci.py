@@ -8,6 +8,7 @@ INTEL_VENDOR_ID = "8086"
 AMD_VENDOR_ID = "1002"
 
 GPU_PCI_CLASS_PATTERN = "03[0-9a-f]{2}"
+AUDIO_PCI_CLASS_PATTERN = "04[0-9a-f]{2}"
 PCI_BRIDGE_PCI_CLASS_PATTERN = "0604"
 
 
@@ -69,7 +70,7 @@ def is_nvidia_visible():
     return os.path.isdir(pci_path)
 
 def rescan():
-    _write_to_pci_path("/sys/bus/pci/rescan", "1")
+    _write_to_pci_path(["/sys/bus/pci/rescan"], "1")
 
 
 def get_gpus_bus_ids(notation_fix=True):
@@ -78,6 +79,11 @@ def get_gpus_bus_ids(notation_fix=True):
 
     nvidia_ids_list = _get_bus_ids(
         match_pci_class=GPU_PCI_CLASS_PATTERN,
+        match_vendor_id=NVIDIA_VENDOR_ID,
+        notation_fix=notation_fix)
+
+    nvidia_audio_ids_list = _get_bus_ids(
+        match_pci_class=AUDIO_PCI_CLASS_PATTERN,
         match_vendor_id=NVIDIA_VENDOR_ID,
         notation_fix=notation_fix)
 
@@ -104,6 +110,8 @@ def get_gpus_bus_ids(notation_fix=True):
     bus_ids = {}
     if len(nvidia_ids_list) > 0:
         bus_ids["nvidia"] = nvidia_ids_list[0]
+    if len(nvidia_audio_ids_list) > 0:
+        bus_ids["nvidia_audio"] = nvidia_audio_ids_list[0]
     if len(intel_ids_list) > 0:
         bus_ids["intel"] = intel_ids_list[0]
     if len(amd_ids_list) > 0:
@@ -152,42 +160,48 @@ def _write_to_nvidia_path(relative_path, string):
 
     bus_ids = get_gpus_bus_ids(notation_fix=False)
 
-    if "nvidia" not in bus_ids.keys():
-        raise PCIError("Nvidia not in PCI bus")
+    for i in ["nvidia", "nvidia_audio"]:
+        if i not in bus_ids.keys():
+            raise PCIError("Nvidia not in PCI bus")
+        absolute_path.append("/sys/bus/pci/devices/0000:%s/%s" % (bus_ids[i], relative_path))
 
-    absolute_path = "/sys/bus/pci/devices/0000:%s/%s" % (bus_ids["nvidia"], relative_path)
     _write_to_pci_path(absolute_path, string)
 
 def _read_from_nvidia_path(relative_path):
 
     bus_ids = get_gpus_bus_ids(notation_fix=False)
 
-    if "nvidia" not in bus_ids.keys():
-        raise PCIError("Nvidia not in PCI bus")
+    for i in ["nvidia", "nvidia_audio"]:
+        if i not in bus_ids.keys():
+            raise PCIError("Nvidia not in PCI bus")
+        absolute_path.append("/sys/bus/pci/devices/0000:%s/%s" % (bus_ids[i], relative_path))
 
-    absolute_path = "/sys/bus/pci/devices/0000:%s/%s" % (bus_ids["nvidia"], relative_path)
     return _read_pci_path(absolute_path)
 
 
 def _write_to_pci_path(pci_path, string):
 
-    try:
-        with open(pci_path, "w") as f:
-            f.write(string)
-    except FileNotFoundError:
-        raise PCIError("Cannot find PCI path at %s" % pci_path)
-    except IOError:
-        raise PCIError("Error writing to %s" % pci_path)
+    for i in range(len(pci_path)):
+        try:
+            with open(pci_path[i], "w") as f:
+                f.write(string)
+        except FileNotFoundError:
+            raise PCIError("Cannot find PCI path at %s" % pci_path[i])
+        except IOError:
+            raise PCIError("Error writing to %s" % pci_path[i])
 
 def _read_pci_path(pci_path):
 
-    try:
-        with open(pci_path, "r") as f:
-            string = f.read()
-    except FileNotFoundError:
-        raise PCIError("Cannot find PCI path at %s" % pci_path)
-    except IOError:
-        raise PCIError("Error reading from %s" % pci_path)
+    string = []
+
+    for i in range(len(pci_path)):
+        try:
+            with open(pci_path, "r") as f:
+                string.append(f.read())
+        except FileNotFoundError:
+            raise PCIError("Cannot find PCI path at %s" % pci_path[i])
+        except IOError:
+            raise PCIError("Error reading from %s" % pci_path[i])
 
     return string
 
