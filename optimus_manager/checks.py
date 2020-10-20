@@ -47,10 +47,7 @@ def get_active_renderer():
     if _is_gl_provider_nvidia():
         return "nvidia"
     else:
-        if check_offloading_available():
-            return "hybrid"
-        else:
-            return "integrated"
+        return "integrated"
 
 
 def is_module_available(module_name):
