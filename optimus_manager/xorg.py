@@ -80,7 +80,7 @@ def is_there_a_MHWD_file():
     return os.path.isfile("/etc/X11/xorg.conf.d/90-mhwd.conf")
 
 
-def do_xsetup(config, requested_mode):
+def do_xsetup(requested_mode, config):
 
     logger = get_logger()
 
@@ -89,10 +89,10 @@ def do_xsetup(config, requested_mode):
 
         try:
             provider = checks.get_integrated_provider()
-            if config["integrated"]["driver"] == "modesetting":
-                exec_bash("xrandr --setprovideroutputsource modesetting NVIDIA-0")
+            if config["integrated"]["driver"] == "xorg":
+                exec_bash("xrandr --setprovideroutputsource \"%s\" NVIDIA-0" % provider)
             else:
-                exec_bash("xrandr --setprovideroutputsource %s NVIDIA-0" % provider)
+                exec_bash("xrandr --setprovideroutputsource modesetting NVIDIA-0")
             exec_bash("xrandr --auto")
         except BashError as e:
             logger.error("Cannot setup PRIME : %s", str(e))

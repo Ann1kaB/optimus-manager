@@ -49,6 +49,18 @@ def get_active_renderer():
     else:
         return "integrated"
 
+def get_integrated_provider():
+
+    try:
+        provider = exec_bash("xrandr --listproviders")
+    except BashError as e:
+        raise CheckError("Cannot list xrandr provdiers : %s")
+
+    for line in re.findall("name:.*", provider):
+        for _p in line.split("name:")[1].split():
+            if _p in ["AMD", "Intel"]:
+                return line.split("name:")[1]
+
 
 def is_module_available(module_name):
 
@@ -140,14 +152,6 @@ def check_offloading_available():
         if re.search("^Provider [0-9]+:", line) and "name:NVIDIA-G0" in line:
             return True
     return False
-
-def get_integrated_provider():
-
-    try:
-        provider = exec_bash("xrandr --listproviders | egrep -io \"name:.*AMD.*|name:.*Intel.*\" | sed 's/name://;s/^/\"/;s/$/\"/'")
-    except BashError as e:
-        raise CheckError("Cannot find Intel or AMD in xrandr providers : %s" % str(e))
-    return provider
 
 def is_xorg_integrated_module_available():
 
