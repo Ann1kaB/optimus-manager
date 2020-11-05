@@ -278,9 +278,8 @@ def _make_integrated_device_section(config, bus_ids, xorg_extra, device_name):
         tearfree_enabled_str = {"yes": "true", "no": "false"}[config["integrated"]["tearfree"]]
         text += "\tOption \"TearFree\" \"%s\"\n" % tearfree_enabled_str
     text += "\tOption \"DRI\" \"%d\"\n" % dri
-    if device_name in xorg_extra.keys():
-        for line in xorg_extra[device_name]:
-            text += ("\t" + line + "\n")
+    for line in xorg_extra["integrated-gpu"]:
+        text += ("\t" + line + "\n")
     text += "EndSection\n\n"
 
     return text
